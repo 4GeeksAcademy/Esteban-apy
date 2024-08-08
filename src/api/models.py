@@ -9,13 +9,13 @@ class Users(db.Model):
     # Atributos
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
+    username= db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(80), unique=False, nullable=False)
     firstname = db.Column(db.String(80), nullable=False)
     lastname = db.Column(db.String(80), nullable=False)
-    identification_type = db.Column(db.Enum('DNI', 'NIE', 'Passport', name='identification_type'), nullable=True)
-    identification_number = db.Column(db.Integer, nullable=True)
     is_active = db.Column(db.Boolean(), unique=False, nullable=False)
     is_admin = db.Column(db.Boolean(), unique=False, nullable=False)
+
     # Relaciones
     # author_to = db.relationship('Authors')  # Se definio en le backref user_to
 
@@ -28,41 +28,69 @@ class Users(db.Model):
                 'email': self.email,
                 'firstname': self.firstname,
                 'lastname': self.lastname,
-                'identification_type': self.identification_type,
-                'identification_number': self.identification_number,
+                'password': self.password,
                 'is_active': self.is_active,
                 'is_admin': self.is_admin}
 
 
-class Authors(db.Model):
-    # __tablename__ = 'authors'
+class Posts(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    dob =  db.Column(db.Date, unique=False, nullable=False)
-    country = db.Column(db.String, unique=False, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    user_to = db.relationship('Users', foreign_keys=[user_id], backref=db.backref('author_to', lazy='select'))
+    user_to = db.relationship('Users', foreign_keys=[user_id], backref=db.backref('post_to', lazy='select'))
 
     def __repr__(self):
-        return f'<Author: {self.id} - {self.name}>'
-
-    def serialize(self):
-        return {'id': self.id,
-                'dob': self.dob,
-                'country': self.country,
-                'user_id': self.user_id,
-                'books': [row.serialize() for row in self.book_to]}
+        return f'<Posts {self.user_id}>' 
+    
+    def seralize(self):
+        return{"user.id": self.user_id}
 
 
-class Books(db.Model):
+class Followers(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(100))
-    author_id = db.Column(db.Integer, db.ForeignKey('authors.id'))
-    author_to = db.relationship('Authors', foreign_keys=[author_id], backref=db.backref('book_to', lazy='select'))
+    user_from_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user_from_to = db.relationship('Users', foreign_keys=[user_from_id])
+    user_to_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user_to_to = db.relationship('Users', foreign_keys=[user_to_id],)
 
     def __repr__(self):
-        return f'<Book: {self.id} - {self.title}>'
+        return f'<Followers {self.user_from_id} - {self.user_to_id}>' 
+    
+    def seralize(self):
+        return{"user_from_id": self.user_from_id,
+               "user_to_id": self.user_to_id} 
 
-    def serialize(self):
-        return {'id': self.id,
-                'title': self.title,
-                'author_id': self.author_id}
+
+class Comments(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    comment_text = db.Column(db.String(400), unique=True, nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    author_to = db.relationship('Users', foreign_keys=[author_id])
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user = db.relationship('Users', foreign_keys=[user_id], backref=db.backref('comment_to', lazy='select'))
+
+    def __repr__(self):
+        return f'<Comments {self.comment_text} >' 
+    
+    def seralize(self):
+        return{"id" : self.id,
+            "user_from_id": self.comment_text,
+             "author_id" : self.author_id,
+              "user_id" : self.user_id }
+    
+
+class Medias(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    media_type = db.Column(db.Enum('video', 'image', 'sounds', name='media_type'), unique=True, nullable=False)
+    url = db.Column(db.String, unique=True, nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey("posts.id"))
+    post_to = db.relationship('Posts', foreign_keys=[post_id], backref=db.backref('media_to', lazy='select'))
+
+    def __repr__(self):
+        return f'<Medias {self.medias_type} >'
+
+    def serealize(self):
+        return{"id" : self.id,
+               "medias_type" : self.media_type,
+               "url" : self.url,
+               "post_id" : self.post_id }
+    
